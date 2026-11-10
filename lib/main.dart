@@ -22,24 +22,23 @@ import 'package:mystudy/features/auth/business_logic/auth_bloc/auth_bloc.dart';
 import 'package:mystudy/features/student/business_logic/bloc/student_bloc.dart';
 import 'package:mystudy/features/subject/business_logic/subject_bloc/subject_bloc.dart';
 import 'package:mystudy/core/themes/light_theme.dart';
+import 'package:mystudy/core/themes/dark_theme.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 Future<void> main() async {
-  // MODIFICATION 1 : Indispensable pour éviter l'écran blanc au démarrage
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: "assets/.env");
-  //print("MA CLÉ EST : ${dotenv.env['GEMINI_API_KEY']}");
-  print("🤖 J'envoie une demande à Gemini...");
-  final ai = AIService();
-  final resume = await ai.generateSummary("installer poetry et python");
-  print("✨ RÉPONSE DE L'IA :\n$resume");
+  try {
+    await dotenv.load(fileName: "assets/.env");
+  } catch (e) {
+    debugPrint("Note: assets/.env could not be loaded: $e");
+  }
 
   LicenseRegistry.addLicense(() async* {
     final license = await rootBundle.loadString('fonts/alegrey/OFL.txt');
     yield LicenseEntryWithLineBreaks(['google_fonts'], license);
   });
   
-  setupLocator(); // Assurez-vous que cette fonction ne contient pas de "await" critique
+  setupLocator();
   runApp(MyApp());
 }
 
@@ -86,8 +85,8 @@ class MyApp extends StatelessWidget {
                 // On utilise innerContext ici, qui connait maintenant les Providers
                 themeMode: innerContext.select((ThemeCubit themeCubit) => themeCubit.state.themeMode),
                 // Assurez-vous d'avoir un lightTheme défini, sinon ça peut planter si le mode est light
-                theme: lightTheme(), // J'ai supposé que vous avez lightTheme() vu les imports
-                darkTheme: lightTheme(),
+                theme: lightTheme(),
+                darkTheme: darkTheme(),
               );
             },
           ),

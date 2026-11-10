@@ -22,9 +22,45 @@ class AppInitScreen extends StatefulWidget {
 class _AppInitScreenState extends State<AppInitScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
+  AuthState? _currentAuthState;
 
-  void init() async {
+  void _onAnimationStatusChanged(AnimationStatus status) async {
+    if (status != AnimationStatus.completed || _currentAuthState == null) return;
+    final state = _currentAuthState;
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final List<String> userRole = prefs.getStringList('role') ?? ['ROLE_STUDENT'];
+
+    if (!mounted) return;
+
+    if (state is FirstTimeLaunch) {
+      context.router.pushAndPopUntil(const OnboardingRoute(),
+          predicate: (route) => false);
+    } else if (state is CheckAuthStateSuccess) {
+      if (userRole.isNotEmpty && userRole.first == 'ROLE_STUDENT') {
+        getIt.get<ProfileBloc>().add(GetCurrentUserEvent());
+        getIt.get<SubjectBloc>().add(GetAllSubjectEvent());
+        getIt.get<ScoreBloc>().add(GetAllScoresEvent());
+
+        context.router.pushAndPopUntil(const AppRoute(),
+            predicate: (router) => false);
+      } else if (userRole.isNotEmpty &&
+          userRole.first == 'ROLE_TEACHER') {
+        getIt.get<ProfileBloc>().add(GetCurrentUserEvent());
+        context.router.pushAndPopUntil(const TeacherBoardRoute(),
+            predicate: (router) => false);
+      } else {
+        context.router.pushAndPopUntil(LoginRoute(),
+            predicate: (router) => false);
+      }
+    } else if (state is CheckAuthStateFailure) {
+      context.router
+          .pushAndPopUntil(LoginRoute(), predicate: (router) => false);
+    }
+  }
+
+  void init() {
     _controller = AnimationController(vsync: this);
+    _controller.addStatusListener(_onAnimationStatusChanged);
     context.read<AuthBloc>().add(CheckAuthStateEvent());
   }
 
@@ -36,7 +72,6 @@ class _AppInitScreenState extends State<AppInitScreen>
 
   @override
   void dispose() {
-    // TODO: implement dispose
     _controller.dispose();
     super.dispose();
   }
@@ -44,41 +79,11 @@ class _AppInitScreenState extends State<AppInitScreen>
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
-      listener: (context, state) async {
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        List<String> userRole = prefs.getStringList('role') ?? ['ROLE_STUDENT'];
-
-        //print(userRole.first);
-
-        _controller.addStatusListener((status) {
-          if (state is FirstTimeLaunch && status == AnimationStatus.completed) {
-            context.router.pushAndPopUntil(const OnboardingRoute(),
-                predicate: (route) => false);
-          } else if (state is CheckAuthStateSuccess &&
-              status == AnimationStatus.completed) {
-            if (userRole.isNotEmpty && userRole.first == 'ROLE_STUDENT') {
-              getIt.get<ProfileBloc>().add(GetCurrentUserEvent());
-              getIt.get<SubjectBloc>().add(GetAllSubjectEvent());
-              getIt.get<ScoreBloc>().add(GetAllScoresEvent());
-
-              context.router.pushAndPopUntil(const AppRoute(),
-                  predicate: (router) => false);
-            } else if (userRole.isNotEmpty &&
-                userRole.first == 'ROLE_TEACHER') {
-              getIt.get<ProfileBloc>().add(GetCurrentUserEvent());
-              context.router.pushAndPopUntil(const TeacherBoardRoute(),
-                  predicate: (router) => false);
-            } else {
-              print("Aucun rôle trouvé pour cet utilisateur");
-              context.router.pushAndPopUntil( LoginRoute(),
-                  predicate: (router) => false);
-            }
-          } else if (state is CheckAuthStateFailure &&
-              status == AnimationStatus.completed) {
-            context.router
-                .pushAndPopUntil(LoginRoute(), predicate: (router) => false);
-          }
-        });
+      listener: (context, state) {
+        _currentAuthState = state;
+        if (_controller.isCompleted) {
+          _onAnimationStatusChanged(AnimationStatus.completed);
+        }
       },
       child: Scaffold(
         body: Center(

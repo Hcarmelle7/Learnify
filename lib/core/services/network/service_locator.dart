@@ -29,10 +29,11 @@ import 'package:mystudy/features/student/data/repositories/student_repository.da
 import 'package:mystudy/features/student/data/services/student_service.dart';
 import 'package:mystudy/features/subject/business_logic/subject_bloc/subject_bloc.dart';
 import 'package:mystudy/features/subject/data/repositories/subject_repository.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:mystudy/features/subject/data/services/subject_service.dart';
 
 final getIt = GetIt.instance;
-String baseUrl = "http://10.8.88.11:3000/api";
+String baseUrl = dotenv.env['API_BASE_URL'] ?? "http://10.8.88.11:3000/api";
 
 void setupLocator() {
   getIt.registerSingleton<Dio>(Dio(
