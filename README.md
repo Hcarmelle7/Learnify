@@ -1,4 +1,4 @@
-# Learnify (Mystudy) 🎓📱
+# Learnify  🎓
 
 > Plateforme mobile intelligente d'assistance aux études et de révision, propulsée par Flutter, l'architecture BLoC et Google Gemini AI.
 
